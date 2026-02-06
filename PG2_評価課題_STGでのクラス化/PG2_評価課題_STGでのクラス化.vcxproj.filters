@@ -103,9 +103,6 @@
     <ClInclude Include="C:\KamataEngine\DirectXGame\math\Matrix4x4.h">
       <Filter>KamataEngine\Include</Filter>
     </ClInclude>
-    <ClInclude Include="C:\KamataEngine\DirectXGame\math\Vector2.h">
-      <Filter>KamataEngine\Include</Filter>
-    </ClInclude>
     <ClInclude Include="C:\KamataEngine\DirectXGame\math\Vector3.h">
       <Filter>KamataEngine\Include</Filter>
     </ClInclude>
