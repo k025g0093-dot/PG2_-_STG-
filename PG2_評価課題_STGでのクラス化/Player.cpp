@@ -56,72 +56,83 @@ void Player::PlayerUpdata(char keys[256]) {
 
 
 void Player::PlayerDraw() {
-	//Novice::DrawEllipse((int)pos_.x, (int)pos_.y, (int)radius_, (int)radius_, 0.0f, 0xFFFFFFFF, kFillModeSolid);
+#ifdef DEBUG
+    Novice::DrawEllipse((int)pos_.x, (int)pos_.y, (int)radius_, (int)radius_, 0.0f, 0xFFFFFFFF, kFillModeSolid);
+#endif
 
-#ifdef _DEBUG
-	Novice::DrawEllipse((int)pos_.x, (int)pos_.y, (int)radius_, (int)radius_, 0.0f, 0xFFFFFFFF, kFillModeSolid);
+    Novice::SetBlendMode(kBlendModeAdd);
 
-#endif // DEBUG
+    static float playerTimer = 0.0f;
+    playerTimer += 0.05f; // 回転・アニメーション速度
 
-	Novice::SetBlendMode(kBlendModeAdd);
+    float centerX = pos_.x;
+    float centerY = pos_.y;
+    float baseRadius = radius_;
 
-	static float timer = 0.0f;
-	timer += 0.05f;
-	float hue = 100.0f; // プレイヤーカラー
+    // --- HSVによる色計算 ---
+    // 弾と同じく、発光感を出すために彩度を抑えめ(0.4f)、輝度を最大(1.0f)に
+    unsigned int mainColor = HSVToRGBA(0.6f, 0.4f, 1.0f, 0xFF);
+    unsigned int coreColor = HSVToRGBA(0.6f, 0.2f, 1.0f, 0xFF); // 中心ほど白に近い
 
-	// --- 1. 中心の「光の点」（視認性アップの必殺技） ---
-	// 三角形の真ん中に真っ白な光の弾を置くことで、どこにいても自機が見えるようになります
-	Novice::DrawEllipse((int)pos_.x, (int)pos_.y, 5, 5, 0.0f, 0xFFFFFFFF, kFillModeSolid);
+    // --- 1. 外郭：回転する二重正三角形 (オーラ) ---
+    // 弾のスリットリングの手法を応用し、外側に広がる三角形を描画
+    int auraSegments = 2; // 正位置と逆位置の2つ
+    for (int i = 0; i < auraSegments; i++) {
+        float progress = fmodf(playerTimer * 0.5f + (i * 0.5f), 1.0f);
+        float auraRadius = baseRadius * (1.0f + progress * 1.5f);
+        unsigned char alpha = (unsigned char)(180 * (1.0f - progress));
+        unsigned int auraColor = (mainColor & 0x00FFFFFF) | (alpha << 24);
 
-	// --- 2. 本体（正三角形） ---
-	float angleOffset = timer * 0.1f;
-	unsigned int coreColor = HSVToRGBA(hue, 0.5f, 1.0f, 0xFF); // ほぼ白に近い青
-	Vector2 p[3];
-	for (int i = 0; i < 3; i++) {
-		float angle = angleOffset + (float)(M_PI * 2.0f / 3.0f) * i + (float)(M_PI * 3.0f / 2.0f);
-		p[i].x = pos_.x + radius_ * cosf(angle);
-		p[i].y = pos_.y + radius_ * sinf(angle);
-	}
-	Novice::DrawTriangle((int)p[0].x, (int)p[0].y, (int)p[1].x, (int)p[1].y, (int)p[2].x, (int)p[2].y, coreColor, kFillModeSolid);
+        float angleOffset = playerTimer + (i * (float)M_PI); // 逆方向に配置
+        Vector2 p[3];
+        for (int j = 0; j < 3; j++) {
+            float angle = angleOffset + (float)(M_PI * 2.0f / 3.0f) * j;
+            p[j].x = centerX + cosf(angle) * auraRadius;
+            p[j].y = centerY + sinf(angle) * auraRadius;
+        }
+        Novice::DrawTriangle((int)p[0].x, (int)p[0].y, (int)p[1].x, (int)p[1].y, (int)p[2].x, (int)p[2].y, auraColor, kFillModeWireFrame);
+    }
 
-	// --- 3. 重なり合うオーラ（正三角形と逆三角形の混合） ---
-	int auraLayers = 12; // 層を増やして密度を上げる
-	float maxSpread = 60.0f;
+    // --- 2. 中層：幾何学的な六角形グリッド ---
+    // 弾の同心円グリッドの代わりに、よりメカニカルな六角形（ヘキサゴン）を配置
+    int hexSides = 6;
+    float hexRadius = baseRadius * 0.8f;
+    for (int i = 0; i < hexSides; i++) {
+        float angle1 = -playerTimer + (float)M_PI * 2.0f / hexSides * i;
+        float angle2 = -playerTimer + (float)M_PI * 2.0f / hexSides * (i + 1);
 
-	for (int i = 0; i < auraLayers; i++) {
-		float progress = fmodf(timer * 0.5f + (i * (1.0f / auraLayers)), 1.0f);
-		float currentSpread = progress * maxSpread;
-		unsigned char alpha = (unsigned char)(255 * (1.0f - progress)); // 最大輝度を上げる
+        float x1 = centerX + cosf(angle1) * hexRadius;
+        float y1 = centerY + sinf(angle1) * hexRadius;
+        float x2 = centerX + cosf(angle2) * hexRadius;
+        float y2 = centerY + sinf(angle2) * hexRadius;
 
-		// 色の設定：ここを変えると外側の色が変わります
-		unsigned int auraColor = HSVToRGBA(hue, 60.0f, 1.0f, alpha);
+        Novice::DrawLine((int)x1, (int)y1, (int)x2, (int)y2, mainColor);
+    }
 
-		Vector2 ap[3];
-		float currentRadius = radius_ + currentSpread;
+    // --- 3. コア：輝く正三角形 ---
+    // 弾の「十字」の代わりに、本体となる三角形を配置。逆回転させて対比を出す。
+    Vector2 coreP[3];
+    float coreAngleOffset = playerTimer * 1.5f;
+    for (int i = 0; i < 3; i++) {
+        float angle = coreAngleOffset + (float)(M_PI * 2.0f / 3.0f) * i;
+        coreP[i].x = centerX + cosf(angle) * baseRadius;
+        coreP[i].y = centerY + sinf(angle) * baseRadius;
+    }
+    // 塗りつぶしとワイヤーフレームを重ねて光を強調
+    Novice::DrawTriangle((int)coreP[0].x, (int)coreP[0].y, (int)coreP[1].x, (int)coreP[1].y, (int)coreP[2].x, (int)coreP[2].y, coreColor & 0x88FFFFFF, kFillModeSolid);
+    Novice::DrawTriangle((int)coreP[0].x, (int)coreP[0].y, (int)coreP[1].x, (int)coreP[1].y, (int)coreP[2].x, (int)coreP[2].y, WHITE, kFillModeWireFrame);
 
-		// i が偶数なら正三角形、奇数なら逆三角形にする
-		float reverseAngle = (i % 2 == 0) ? 0.0f : (float)M_PI;
+    // 最中心の点（最も輝く場所）
+    Novice::DrawEllipse((int)centerX, (int)centerY, 3, 3, 0.0f, WHITE, kFillModeSolid);
 
-		for (int j = 0; j < 3; j++) {
-			// reverseAngle を足すことで三角形の向きを交互に変える
-			float angle = angleOffset + (float)(M_PI * 2.0f / 3.0f) * j + (float)(M_PI * 3.0f / 2.0f) + reverseAngle;
-			ap[j].x = pos_.x + currentRadius * cosf(angle);
-			ap[j].y = pos_.y + currentRadius * sinf(angle);
-		}
+    // 弾の描画
+    for (int i = 0; i < 250; i++) {
+        if (bullet[i] != nullptr) {
+            bullet[i]->Draw();
+        }
+    }
 
-		Novice::DrawTriangle(
-			(int)ap[0].x, (int)ap[0].y, (int)ap[1].x, (int)ap[1].y, (int)ap[2].x, (int)ap[2].y,
-			auraColor, kFillModeWireFrame
-		);
-	}
-
-	for (int i = 0; i < 250; i++) {
-		if (bullet[i] != nullptr) {
-			bullet[i]->Draw();
-		}
-	}
-
-	Novice::SetBlendMode(kBlendModeNormal);
+    Novice::SetBlendMode(kBlendModeNormal);
 }
 
 

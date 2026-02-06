@@ -53,25 +53,24 @@ void Bullet::Updata() {
 
 void Bullet::Draw() {
     if (bulletStatus.isShot) {
+        // 加算合成を開始
         Novice::SetBlendMode(kBlendModeAdd);
 
         static float bulletTimer = 0.0f;
-        bulletTimer += 0.1f; // アニメーション速度
+        bulletTimer += 0.08f; // 速度を微調整
 
         float centerX = bulletStatus.transform_.x;
         float centerY = bulletStatus.transform_.y;
         float baseRadius = bulletStatus.radius_;
 
-        // --- HSVによる色計算 ---
-        // 時間経過で色相を変化させる (0~360度)
-        
+        // --- 1. 明るい色の定義 ---
+        // S(彩度)を0.3~0.5に下げ、V(輝度)を1.0に固定。Alphaを上げることで発光を強めます。
+        // メイン：発光感の強いシアン/白
+        unsigned int mainColor = HSVToRGBA(0.55f, 0.4f, 1.0f, 0xFF);
+        // コア：ほぼ白に近い青
+        unsigned int coreColor = HSVToRGBA(0.55f, 0.2f, 1.0f, 0xFF);
 
-        // メインカラー (シアン〜青系の発色を良くするなら hue を 180~220 固定にしてもOK)
-        // ここでは全色相が回るようにしています
-        unsigned int mainColor = HSVToRGBA(0.4f, 0.7f, 1.0f, 0xAA);
-        unsigned int coreColor = HSVToRGBA(0.4f, 0.3f, 1.0f, 0xFF); // 中心ほど白っぽく
-
-        // --- 1. 外郭：幾何学的なリング (スリット入り) ---
+        // --- 2. 外郭：光の軌跡 (2回描画して光を強くする) ---
         int segments = 8;
         for (int i = 0; i < segments; i++) {
             float angle = bulletTimer + (float)M_PI * 2.0f / segments * i;
@@ -79,36 +78,37 @@ void Bullet::Draw() {
 
             float x1 = centerX + cosf(angle) * r;
             float y1 = centerY + sinf(angle) * r;
-            float x2 = centerX + cosf(angle + 0.4f) * r;
-            float y2 = centerY + sinf(angle + 0.4f) * r;
+            float x2 = centerX + cosf(angle + 0.5f) * r;
+            float y2 = centerY + sinf(angle + 0.5f) * r;
 
+            // 重ねて描画することで「光の芯」を作る
             Novice::DrawLine((int)x1, (int)y1, (int)x2, (int)y2, mainColor);
+            Novice::DrawLine((int)x1, (int)y1, (int)x2, (int)y2, 0x88FFFFFF); // 白い光の芯
         }
 
-        // --- 2. 中層：同心円のグリッド ---
-        // 判定ライン（外側）
+        // --- 3. 中層：同心円グリッド ---
+        // 外側の楕円（メインカラー）
         Novice::DrawEllipse((int)centerX, (int)centerY, (int)baseRadius, (int)baseRadius, 0.0f, mainColor, kFillModeWireFrame);
-        // 内側ライン（少し暗め）
-        unsigned int subColor = HSVToRGBA(0.4f, 0.8f, 0.5f, 0x88);
-        Novice::DrawEllipse((int)centerX, (int)centerY, (int)(baseRadius * 0.7f), (int)(baseRadius * 0.7f), 0.0f, subColor, kFillModeWireFrame);
+        // 内側の楕円（あえて白を混ぜる）
+        Novice::DrawEllipse((int)centerX, (int)centerY, (int)(baseRadius * 0.7f), (int)(baseRadius * 0.7f), 0.0f, 0xAAFFFFFF, kFillModeWireFrame);
 
-        // --- 3. コア：幾何学的な十字 ---
+        // --- 4. コア：強い光の十字 ---
         for (int i = 0; i < 2; i++) {
-            // 十字は外側と逆に回転させるとメカニカルに見える
-            float crossAngle = -bulletTimer * 1.5f + (i * (float)M_PI_2);
-            float s = sinf(crossAngle) * baseRadius * 0.9f;
-            float c = cosf(crossAngle) * baseRadius * 0.9f;
+            float crossAngle = -bulletTimer * 2.0f + (i * (float)M_PI_2);
+            float s = sinf(crossAngle) * baseRadius * 1.0f;
+            float c = cosf(crossAngle) * baseRadius * 1.0f;
 
-            Novice::DrawLine(
-                (int)(centerX - c), (int)(centerY - s),
-                (int)(centerX + c), (int)(centerY + s),
-                coreColor
-            );
+            // 太い線がない場合は、少しずらして2本引くと光が強く見えます
+            Novice::DrawLine((int)(centerX - c), (int)(centerY - s), (int)(centerX + c), (int)(centerY + s), coreColor);
+            Novice::DrawLine((int)(centerX - c + 1), (int)(centerY - s), (int)(centerX + c + 1), (int)(centerY + s), coreColor);
         }
 
-        // 最中心の点（最も輝く場所）
-        Novice::DrawEllipse((int)centerX, (int)centerY, 2, 2, 0.0f, WHITE, kFillModeSolid);
+        // --- 5. 中心点（ブルーム効果のシミュレート） ---
+        // 小さな塗りと、少し大きめの薄い塗りを重ねて眩しさを表現
+        Novice::DrawEllipse((int)centerX, (int)centerY, (int)(baseRadius * 0.4f), (int)(baseRadius * 0.4f), 0.0f, mainColor & 0x66FFFFFF, kFillModeSolid);
+        Novice::DrawEllipse((int)centerX, (int)centerY, 3, 3, 0.0f, WHITE, kFillModeSolid);
 
+        // ブレンドモードを戻す
         Novice::SetBlendMode(kBlendModeNormal);
     }
 }
