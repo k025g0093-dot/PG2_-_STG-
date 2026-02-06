@@ -12,18 +12,18 @@ public:
 
 	Player(Vector2 pos, Vector2 speed, float radius, int MaxHp, int hp, bool isAlive);
 
-	void PlayerUpdata(char keys[256], char preKeys[256]);
+	void PlayerUpdata(char keys[256]);
 	void PlayerDraw();
-	Bullet* bullet;
+	Bullet* bullet[250];
 
 private://関数限定の
-	void MovePlayer(char keys[256], char preKeys[256]);
+	void MovePlayer(char keys[256]);
 
 private://変数限定
 
 	Vector2 pos_;
 	Vector2 speed_;
 	float radius_;
-
+	float  shotCt_ = 3.0f;
 };
 

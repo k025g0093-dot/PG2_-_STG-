@@ -59,14 +59,17 @@ void Enemy::EnemyUpdata() {
 		}
 		else if (rsTimer_ <= 0) {
 			isAlive_ = true;
+            rsTimer_ = 5;
+            hp_ = MaxHp_;
+			pos_ = { (float)(rand() % 1180 + 50),50.0f };
 		}
 	}
+
 }
 
 
 void Enemy::DrawEmemy() {
     if (!isAlive_) return;
-	//Novice::DrawEllipse((int)pos_.x, (int)pos_.y, (int)radius_, (int)radius_, 0.0f, 0xFFFFFFFF, kFillModeSolid);
 
 #ifdef DEBUG
 	Novice::DrawEllipse((int)pos_.x, (int)pos_.y, (int)radius_, (int)radius_, 0.0f, 0xFFFFFFFF, kFillModeSolid);
@@ -133,6 +136,16 @@ void Enemy::DrawEmemy() {
 //プライベート関数とかを作成
 //-----------------------------------------------
 
+void Enemy::HitGet() {
+    if (isAlive_) {
+        hp_ -= 1;          // HPを減らす
+        if (hp_ <= 0) {
+            hp_ = 0;
+            isAlive_ = false; // 死ぬ
+            pos_ = { -10000.0f,-10000.0f };
+        }
+    }
+}
 
 void Enemy::MoveEnemy() {
 

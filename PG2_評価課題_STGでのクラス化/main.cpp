@@ -12,6 +12,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	char keys[256] = { 0 };
 	char preKeys[256] = { 0 };
 
+
 	Game* game_ = new Game();
 
 	// ウィンドウの×ボタンが押されるまでループ
@@ -27,7 +28,8 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		/// ↓更新処理ここから
 		///
 
-		game_->Updata(preKeys, keys);
+		game_->Updata(keys);
+
 
 		///
 		/// ↑更新処理ここまで

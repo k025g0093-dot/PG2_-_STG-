@@ -15,6 +15,8 @@ public:
 	};
 	BulletStatus bulletStatus;
 
+	Vector2 BulletGetPos() const { return bulletStatus.transform_; };
+	float GetRadius() const { return bulletStatus.radius_; };
 	Bullet();
 	~Bullet();
 	void Updata();

@@ -36,13 +36,21 @@ Player::Player(Vector2 pos, Vector2 speed, float radius, int MaxHp, int hp, bool
 	MaxHp = 10;
 	hp = MaxHp;
 	isAlive = true;
-	bullet = new Bullet();
+	shotCt_;
+
+	for (int i = 0; i < 250; i++) {
+		//bullet[i] = nullptr;
+		bullet[i] = new Bullet();
+	}
+
+
+
 }
 
 
 
-void Player::PlayerUpdata(char keys[256], char preKeys[256]) {
-	MovePlayer(keys, preKeys);
+void Player::PlayerUpdata(char keys[256]) {
+	MovePlayer(keys);
 }
 
 
@@ -50,7 +58,7 @@ void Player::PlayerUpdata(char keys[256], char preKeys[256]) {
 void Player::PlayerDraw() {
 	//Novice::DrawEllipse((int)pos_.x, (int)pos_.y, (int)radius_, (int)radius_, 0.0f, 0xFFFFFFFF, kFillModeSolid);
 
-#ifdef DEBUG
+#ifdef _DEBUG
 	Novice::DrawEllipse((int)pos_.x, (int)pos_.y, (int)radius_, (int)radius_, 0.0f, 0xFFFFFFFF, kFillModeSolid);
 
 #endif // DEBUG
@@ -106,7 +114,12 @@ void Player::PlayerDraw() {
 			auraColor, kFillModeWireFrame
 		);
 	}
-	bullet->Draw();
+
+	for (int i = 0; i < 250; i++) {
+		if (bullet[i] != nullptr) {
+			bullet[i]->Draw();
+		}
+	}
 
 	Novice::SetBlendMode(kBlendModeNormal);
 }
@@ -116,39 +129,35 @@ void Player::PlayerDraw() {
 //プライベート軍--------------------
 
 
-void Player::MovePlayer(char keys[256], char preKeys[256]) {
+void Player::MovePlayer(char keys[256]) {
+	// 1. プレイヤーの移動処理
+	if (keys[DIK_A]) pos_.x -= speed_.x;
+	if (keys[DIK_D]) pos_.x += speed_.x;
+	if (keys[DIK_W]) pos_.y -= speed_.y;
+	if (keys[DIK_S]) pos_.y += speed_.y;
 
-
-	//プレイヤーの移動処理
-	if (keys[DIK_A]) {
-		pos_.x -= speed_.x;
+	// 2. クールタイムのカウントダウン (ループの外で1フレームに1回だけ減らす)
+	if (shotCt_ > 0) {
+		shotCt_--;
 	}
 
-	if (keys[DIK_D]) {
-		pos_.x += speed_.x;
-	}
-
-	if (keys[DIK_W]) {
-		pos_.y -= speed_.y;
-	}
-
-	if (keys[DIK_S]) {
-		pos_.y += speed_.y;
-	}
-
-	//プレイヤーの移動制限処理
-
-
-	if (!bullet->bulletStatus.isShot) {
-		if (keys[DIK_SPACE] && !preKeys[DIK_SPACE]) {
-
-			bullet->bulletStatus.transform_.x = pos_.x;
-			bullet->bulletStatus.transform_.y = pos_.y;
-			bullet->bulletStatus.isShot = true;
-
+	// 3. 発射処理
+	if (keys[DIK_SPACE]) {
+		if (shotCt_ <= 0) { // クールタイムが終わっていたら
+			for (int i = 0; i < 250; i++) {
+				if (!bullet[i]->bulletStatus.isShot) {
+					bullet[i]->bulletStatus.transform_.x = pos_.x;
+					bullet[i]->bulletStatus.transform_.y = pos_.y;
+					bullet[i]->bulletStatus.isShot = true;
+					shotCt_ = 3.0f; // 次の発射までの間隔（適宜調整）
+					break; // 1発撃ったらこのループを抜ける
+				}
+			}
 		}
 	}
-	bullet->Updata();
 
-
+	// 4. 弾の更新処理 (発射の成否に関わらず、すべての弾の状態を更新)
+	for (int i = 0; i < 250; i++) {
+		bullet[i]->Updata();
+	}
 }

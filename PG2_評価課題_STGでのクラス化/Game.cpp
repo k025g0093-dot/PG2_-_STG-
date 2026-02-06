@@ -20,10 +20,10 @@ Game::Game() {
 
 }
 
-void Game::Updata(char keys[256], char preKeys[256]) {
+void Game::Updata(char keys[256]) {
 
     //プレイヤーの更新処理
-    player_->PlayerUpdata(keys, preKeys);
+    player_->PlayerUpdata(keys);
 
     //敵の更新処理
     for (int i = 0; i < maxEnemy; i++) {
@@ -33,6 +33,37 @@ void Game::Updata(char keys[256], char preKeys[256]) {
     if (scrollY_ >= 64.0f) { // グリッドの幅を超えたらリセット
         scrollY_ = 0.0f;
     }
+
+for (int i = 0; i < maxEnemy; i++) {
+    // 敵が生きていないなら判定を飛ばす
+    if (!enemy[i]->GetIsAlive()) continue; 
+
+    for (int b = 0; b < 250; b++) {
+        // 弾が発射されていないなら判定を飛ばす
+        if (!player_->bullet[b]->bulletStatus.isShot) continue;
+
+        // --- 1. 距離ベクトルを計算 ---
+        // ※ bullet[i] ではなく bullet[b] に修正
+        Vector2 dist = {
+            enemy[i]->EnemyGetPos().x - player_->bullet[b]->bulletStatus.transform_.x,
+            enemy[i]->EnemyGetPos().y - player_->bullet[b]->bulletStatus.transform_.y
+        };
+
+        // --- 2. 距離の2乗を計算 ---
+        float distLengthSq = (dist.x * dist.x) + (dist.y * dist.y);
+
+        // --- 3. 半径の合計の2乗を計算 ---
+        float radiusSum = enemy[i]->GetRadius() + player_->bullet[b]->bulletStatus.radius_;
+        float radiusSumSq = radiusSum * radiusSum;
+
+        // --- 4. 判定 ---
+        if (distLengthSq <= radiusSumSq) {
+            // 当たった時の処理
+            enemy[i]->HitGet(); // 敵にダメージなど
+            player_->bullet[b]->bulletStatus.isShot = false; // 弾を消す
+        }
+    }
+}
 }
 
 void Game::Draw() {

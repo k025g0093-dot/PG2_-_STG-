@@ -7,7 +7,8 @@ public:
 	Vector2 EnemyGetPos() const { return pos_; };
 	Vector2 EnemyGetSpeed() const { return speed_; };
 	float GetRadius() const { return radius_; };
-
+	void HitGet();
+	bool GetIsAlive() const { return isAlive_; };
 	Enemy(Vector2 pos, Vector2 speed, float radius,int MaxHp,int hp,bool isAlive);
 	void EnemyUpdata();
 	void DrawEmemy();

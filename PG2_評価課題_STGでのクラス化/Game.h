@@ -8,7 +8,7 @@ public:
 	Game();//コンストラクタ
 	~Game();//デストラクタ
 
-	void Updata(char keys[256], char preKeys[256]);//更新処理
+	void Updata(char keys[256]);//更新処理
 	void Draw();
 
 

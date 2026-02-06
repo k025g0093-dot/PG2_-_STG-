@@ -52,63 +52,63 @@ void Bullet::Updata() {
 
 
 void Bullet::Draw() {
-	if (bulletStatus.isShot) {
-		Novice::SetBlendMode(kBlendModeAdd);
+    if (bulletStatus.isShot) {
+        Novice::SetBlendMode(kBlendModeAdd);
 
-		static float bulletTimer = 0.0f;
-		bulletTimer += 0.12f; // 回転速度
+        static float bulletTimer = 0.0f;
+        bulletTimer += 0.1f; // アニメーション速度
 
-		// プレイヤーの色（青〜シアン）
-		float hue = 30.0f;
+        float centerX = bulletStatus.transform_.x;
+        float centerY = bulletStatus.transform_.y;
+        float baseRadius = bulletStatus.radius_;
 
-		// --- 1. 多層四角形の重なり描画 ---
-		// 敵と同じく、ループを使って「サイズ」と「角度」を少しずつ変えた四角形を重ねます
-		int layers = 6;
-		for (int i = 0; i < layers; i++) {
-			// 外側に行くほど大きく、透明にする
-			float currentRadius = bulletStatus.radius_ * (1.0f + i * 0.4f);
-			unsigned char alpha = (unsigned char)(200 * (1.0f - (float)i / layers));
-			unsigned int color = HSVToRGBA(hue, 0.8f, 1.0f, alpha);
+        // --- HSVによる色計算 ---
+        // 時間経過で色相を変化させる (0~360度)
+        
 
-			// 各層の角度。i * 0.2f で「少しずつズレる」のを表現し、
-			// bulletTimer で全体を回転させます。
-			float angleBase = bulletTimer + (i * 0.2f);
+        // メインカラー (シアン〜青系の発色を良くするなら hue を 180~220 固定にしてもOK)
+        // ここでは全色相が回るようにしています
+        unsigned int mainColor = HSVToRGBA(0.4f, 0.7f, 1.0f, 0xAA);
+        unsigned int coreColor = HSVToRGBA(0.4f, 0.3f, 1.0f, 0xFF); // 中心ほど白っぽく
 
-			// 四角形の4点（90度刻み）を計算して線で結ぶ
-			Vector2 p[4];
-			for (int j = 0; j < 4; j++) {
-				float a = angleBase + (float)M_PI_2 * j; // 90度(PI/2)ずつ
-				p[j].x = bulletStatus.transform_.x + cosf(a) * currentRadius;
-				p[j].y = bulletStatus.transform_.y + sinf(a) * currentRadius;
-			}
+        // --- 1. 外郭：幾何学的なリング (スリット入り) ---
+        int segments = 8;
+        for (int i = 0; i < segments; i++) {
+            float angle = bulletTimer + (float)M_PI * 2.0f / segments * i;
+            float r = baseRadius * 1.2f;
 
-			// 四角形の外枠を描画
-			for (int j = 0; j < 4; j++) {
-				Novice::DrawLine(
-					(int)p[j].x, (int)p[j].y,
-					(int)p[(j + 1) % 4].x, (int)p[(j + 1) % 4].y,
-					color
-				);
-			}
-		}
+            float x1 = centerX + cosf(angle) * r;
+            float y1 = centerY + sinf(angle) * r;
+            float x2 = centerX + cosf(angle + 0.4f) * r;
+            float y2 = centerY + sinf(angle + 0.4f) * r;
 
-		// --- 2. スコアGetter風：中心の「ひし形」コア ---
-		// 中心の核も四角形を45度回転させた状態で塗りつぶし、最も明るくします
-		unsigned int coreColor = 0xFFFFFFFF;
-		float coreR = bulletStatus.radius_ * 0.7f;
-		Vector2 cp[4];
-		for (int i = 0; i < 4; i++) {
-			float a = (bulletTimer * 1.5f) + (float)M_PI_2 * i; // 核は少し速く回すとかっこいい
-			cp[i].x = bulletStatus.transform_.x + cosf(a) * coreR;
-			cp[i].y = bulletStatus.transform_.y + sinf(a) * coreR;
-		}
-		// 四角形を2つの三角形で塗りつぶし
-		Novice::DrawTriangle((int)cp[0].x, (int)cp[0].y, (int)cp[1].x, (int)cp[1].y, (int)cp[2].x, (int)cp[2].y, coreColor, kFillModeSolid);
-		Novice::DrawTriangle((int)cp[0].x, (int)cp[0].y, (int)cp[2].x, (int)cp[2].y, (int)cp[3].x, (int)cp[3].y, coreColor, kFillModeSolid);
+            Novice::DrawLine((int)x1, (int)y1, (int)x2, (int)y2, mainColor);
+        }
 
-		// --- 3. 仕上げ：中心の点光 ---
-		Novice::DrawEllipse((int)bulletStatus.transform_.x, (int)bulletStatus.transform_.y, 3, 3, 0.0f, WHITE, kFillModeSolid);
+        // --- 2. 中層：同心円のグリッド ---
+        // 判定ライン（外側）
+        Novice::DrawEllipse((int)centerX, (int)centerY, (int)baseRadius, (int)baseRadius, 0.0f, mainColor, kFillModeWireFrame);
+        // 内側ライン（少し暗め）
+        unsigned int subColor = HSVToRGBA(0.4f, 0.8f, 0.5f, 0x88);
+        Novice::DrawEllipse((int)centerX, (int)centerY, (int)(baseRadius * 0.7f), (int)(baseRadius * 0.7f), 0.0f, subColor, kFillModeWireFrame);
 
-		Novice::SetBlendMode(kBlendModeNormal);
-	}
+        // --- 3. コア：幾何学的な十字 ---
+        for (int i = 0; i < 2; i++) {
+            // 十字は外側と逆に回転させるとメカニカルに見える
+            float crossAngle = -bulletTimer * 1.5f + (i * (float)M_PI_2);
+            float s = sinf(crossAngle) * baseRadius * 0.9f;
+            float c = cosf(crossAngle) * baseRadius * 0.9f;
+
+            Novice::DrawLine(
+                (int)(centerX - c), (int)(centerY - s),
+                (int)(centerX + c), (int)(centerY + s),
+                coreColor
+            );
+        }
+
+        // 最中心の点（最も輝く場所）
+        Novice::DrawEllipse((int)centerX, (int)centerY, 2, 2, 0.0f, WHITE, kFillModeSolid);
+
+        Novice::SetBlendMode(kBlendModeNormal);
+    }
 }
