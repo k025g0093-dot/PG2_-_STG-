@@ -12,6 +12,8 @@ public:
 		float radius_;
 		int speed;
 		bool isShot;
+		bool isChargeShot; // チャージ弾フラグ
+		float chargeScale;       // 弾の大きさ倍率
 	};
 	BulletStatus bulletStatus;
 

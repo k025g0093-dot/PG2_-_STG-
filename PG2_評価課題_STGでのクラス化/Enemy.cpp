@@ -37,7 +37,6 @@ unsigned int HSVToRGBA(float h, float s, float v, unsigned char alpha) {
 Enemy::Enemy(Vector2 pos, Vector2 speed,
 	float radius, int MaxHp,
 	int hp, bool isAlive) {
-
 	pos_ = pos;
 	speed_ = speed;
 	radius_ = radius;
@@ -64,7 +63,6 @@ void Enemy::EnemyUpdata() {
 			pos_ = { (float)(rand() % 1180 + 50),50.0f };
 		}
 	}
-
 }
 
 
@@ -136,9 +134,9 @@ void Enemy::DrawEmemy() {
 //プライベート関数とかを作成
 //-----------------------------------------------
 
-void Enemy::HitGet() {
+void Enemy::HitGet(int dmg) {
     if (isAlive_) {
-        hp_ -= 1;          // HPを減らす
+        hp_ -= dmg;          // HPを減らす
         if (hp_ <= 0) {
             hp_ = 0;
             isAlive_ = false; // 死ぬ
@@ -148,16 +146,29 @@ void Enemy::HitGet() {
 }
 
 void Enemy::MoveEnemy() {
+    // 1. 移動タイマー（静的変数、またはヘッダで定義してもOK）
+    static int moveTimer = 0;
+    moveTimer--;
 
-	if (pos_.x <= 0 + radius_ || pos_.x >= 1280 - radius_) {
-		speed_.x *= -1;
-	}
+    // 2. タイマーが切れたら、次の行き先と速度を決める
+    if (moveTimer <= 0) {
+        // 次の方向転換までの時間をランダムに設定 (30〜90フレーム)
+        moveTimer = rand() % 60 + 30;
 
-	pos_.x += speed_.x;
+        // 速度をランダムに設定（例：-8.0f 〜 8.0f）
+        speed_.x = (float)(rand() % 17 - 8);
+        speed_.y = (float)(rand() % 17 - 8);
+    }
 
+    // 3. 移動実行
+    pos_.x += speed_.x;
+    pos_.y += speed_.y;
 
+    // 4. 画面端で跳ね返る（これがないと画面外へ逃げてしまう）
+    if (pos_.x <= radius_ || pos_.x >= 1280 - radius_) {
+        speed_.x *= -1;
+    }
+    if (pos_.y <= radius_ || pos_.y >= 720 - radius_) { // 上半分で動くように制限
+        speed_.y *= -1;
+    }
 }
-
-
-
-

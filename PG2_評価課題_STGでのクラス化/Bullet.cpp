@@ -5,29 +5,29 @@
 #include <corecrt_math.h>
 
 // staticを付けてこのファイル内限定の関数にする（二重定義エラー防止）
-static unsigned int HSVToRGBA(float h, float s, float v, unsigned char alpha) {
-	float r, g, b;
-	int i = (int)(h / 60.0f) % 6;
-	float f = (h / 60.0f) - (int)(h / 60.0f);
-	float p = v * (1.0f - s);
-	float q = v * (1.0f - f * s);
-	float t = v * (1.0f - (1.0f - f) * s);
-
-	switch (i) {
-	case 0: r = v; g = t; b = p; break;
-	case 1: r = q; g = v; b = p; break;
-	case 2: r = p; g = v; b = t; break;
-	case 3: r = p; g = q; b = v; break;
-	case 4: r = t; g = p; b = q; break;
-	case 5: r = v; g = p; b = q; break;
-	default: r = 0; g = 0; b = 0; break;
-	}
-
-	return ((unsigned int)(r * 255) << 24) |
-		((unsigned int)(g * 255) << 16) |
-		((unsigned int)(b * 255) << 8) |
-		alpha;
-}
+//static unsigned int HSVToRGBA(float h, float s, float v, unsigned char alpha) {
+//	float r, g, b;
+//	int i = (int)(h / 60.0f) % 6;
+//	float f = (h / 60.0f) - (int)(h / 60.0f);
+//	float p = v * (1.0f - s);
+//	float q = v * (1.0f - f * s);
+//	float t = v * (1.0f - (1.0f - f) * s);
+//
+//	switch (i) {
+//	case 0: r = v; g = t; b = p; break;
+//	case 1: r = q; g = v; b = p; break;
+//	case 2: r = p; g = v; b = t; break;
+//	case 3: r = p; g = q; b = v; break;
+//	case 4: r = t; g = p; b = q; break;
+//	case 5: r = v; g = p; b = q; break;
+//	default: r = 0; g = 0; b = 0; break;
+//	}
+//
+//	return ((unsigned int)(r * 255) << 24) |
+//		((unsigned int)(g * 255) << 16) |
+//		((unsigned int)(b * 255) << 8) |
+//		alpha;
+//}
 
 Bullet::Bullet() {
 	bulletStatus.transform_.x = -1100;
@@ -52,63 +52,56 @@ void Bullet::Updata() {
 
 
 void Bullet::Draw() {
-    if (bulletStatus.isShot) {
-        // 加算合成を開始
-        Novice::SetBlendMode(kBlendModeAdd);
+    if (!bulletStatus.isShot) return;
 
-        static float bulletTimer = 0.0f;
-        bulletTimer += 0.08f; // 速度を微調整
+    // チャージ倍率を適用した半径
+    float drawRadius = bulletStatus.radius_ * bulletStatus.chargeScale;
 
-        float centerX = bulletStatus.transform_.x;
-        float centerY = bulletStatus.transform_.y;
-        float baseRadius = bulletStatus.radius_;
+    Novice::SetBlendMode(kBlendModeAdd);
 
-        // --- 1. 明るい色の定義 ---
-        // S(彩度)を0.3~0.5に下げ、V(輝度)を1.0に固定。Alphaを上げることで発光を強めます。
-        // メイン：発光感の強いシアン/白
-        unsigned int mainColor = HSVToRGBA(0.55f, 0.4f, 1.0f, 0xFF);
-        // コア：ほぼ白に近い青
-        unsigned int coreColor = HSVToRGBA(0.55f, 0.2f, 1.0f, 0xFF);
+    static float bulletTimer = 0.0f;
+    bulletTimer += 0.1f; // 回転速度
 
-        // --- 2. 外郭：光の軌跡 (2回描画して光を強くする) ---
-        int segments = 8;
-        for (int i = 0; i < segments; i++) {
-            float angle = bulletTimer + (float)M_PI * 2.0f / segments * i;
-            float r = baseRadius * 1.2f;
+    float centerX = bulletStatus.transform_.x;
+    float centerY = bulletStatus.transform_.y;
 
-            float x1 = centerX + cosf(angle) * r;
-            float y1 = centerY + sinf(angle) * r;
-            float x2 = centerX + cosf(angle + 0.5f) * r;
-            float y2 = centerY + sinf(angle + 0.5f) * r;
+    // --- 1. 色の定義 ---
+    // チャージ弾ならより白く、通常弾ならシアンに
+    unsigned int mainColor = (bulletStatus.chargeScale > 1.5f) ? 0xFFFFFF88 : 0x00A0FFFF;
+    unsigned int edgeColor = 0x00FFFFFF | 0xFF; // 外枠の白光
 
-            // 重ねて描画することで「光の芯」を作る
-            Novice::DrawLine((int)x1, (int)y1, (int)x2, (int)y2, mainColor);
-            Novice::DrawLine((int)x1, (int)y1, (int)x2, (int)y2, 0x88FFFFFF); // 白い光の芯
+    // --- 2. 複数の三角形を回転させて重ねる ---
+    int triangleCount = 3; // 三角形の数
+    for (int i = 0; i < triangleCount; i++) {
+        // 三角形ごとに回転をずらす
+        float angleOffset = (float)M_PI * 2.0f / triangleCount * i + bulletTimer;
+
+        // 正三角形の頂点を計算
+        Vector2 p[3];
+        for (int j = 0; j < 3; j++) {
+            float theta = angleOffset + (float)M_PI * 2.0f / 3.0f * j;
+            p[j].x = centerX + cosf(theta) * drawRadius;
+            p[j].y = centerY + sinf(theta) * drawRadius;
         }
 
-        // --- 3. 中層：同心円グリッド ---
-        // 外側の楕円（メインカラー）
-        Novice::DrawEllipse((int)centerX, (int)centerY, (int)baseRadius, (int)baseRadius, 0.0f, mainColor, kFillModeWireFrame);
-        // 内側の楕円（あえて白を混ぜる）
-        Novice::DrawEllipse((int)centerX, (int)centerY, (int)(baseRadius * 0.7f), (int)(baseRadius * 0.7f), 0.0f, 0xAAFFFFFF, kFillModeWireFrame);
+        // 塗りつぶしの三角形（少し透明度を下げる）
+        Novice::DrawTriangle(
+            (int)p[0].x, (int)p[0].y, (int)p[1].x, (int)p[1].y, (int)p[2].x, (int)p[2].y,
+            mainColor & 0x66FFFFFF, kFillModeSolid
+        );
 
-        // --- 4. コア：強い光の十字 ---
-        for (int i = 0; i < 2; i++) {
-            float crossAngle = -bulletTimer * 2.0f + (i * (float)M_PI_2);
-            float s = sinf(crossAngle) * baseRadius * 1.0f;
-            float c = cosf(crossAngle) * baseRadius * 1.0f;
-
-            // 太い線がない場合は、少しずらして2本引くと光が強く見えます
-            Novice::DrawLine((int)(centerX - c), (int)(centerY - s), (int)(centerX + c), (int)(centerY + s), coreColor);
-            Novice::DrawLine((int)(centerX - c + 1), (int)(centerY - s), (int)(centerX + c + 1), (int)(centerY + s), coreColor);
-        }
-
-        // --- 5. 中心点（ブルーム効果のシミュレート） ---
-        // 小さな塗りと、少し大きめの薄い塗りを重ねて眩しさを表現
-        Novice::DrawEllipse((int)centerX, (int)centerY, (int)(baseRadius * 0.4f), (int)(baseRadius * 0.4f), 0.0f, mainColor & 0x66FFFFFF, kFillModeSolid);
-        Novice::DrawEllipse((int)centerX, (int)centerY, 3, 3, 0.0f, WHITE, kFillModeSolid);
-
-        // ブレンドモードを戻す
-        Novice::SetBlendMode(kBlendModeNormal);
+        // 外枠の三角形（ハッキリ見せる）
+        Novice::DrawTriangle(
+            (int)p[0].x, (int)p[0].y, (int)p[1].x, (int)p[1].y, (int)p[2].x, (int)p[2].y,
+            edgeColor, kFillModeWireFrame
+        );
     }
+
+    // --- 3. 中心に光の芯を作る ---
+    // チャージ弾なら中心をより眩しく
+    float coreSize = drawRadius * 0.4f;
+    Novice::DrawEllipse((int)centerX, (int)centerY, (int)coreSize, (int)coreSize, 0.0f, WHITE, kFillModeWireFrame);
+    Novice::DrawEllipse((int)centerX, (int)centerY, 4, 4, 0.0f, WHITE, kFillModeSolid);
+
+    Novice::SetBlendMode(kBlendModeNormal);
 }
