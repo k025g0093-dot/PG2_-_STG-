@@ -33,8 +33,8 @@ Player::Player(Vector2 pos, Vector2 speed, float radius, int MaxHp, int hp, bool
 	pos_ = pos;
 	speed_ = speed;
 	radius_ = radius;
-	MaxHp = 10;
-	hp = MaxHp;
+	MaxHp_ = MaxHp;
+	hp_ = hp;
 	isAlive = true;
 	shotCt_;
 
@@ -52,8 +52,10 @@ void Player::PlayerUpdata(char keys[256]) {
 
 
 void Player::PlayerDraw() {
-#ifdef DEBUG
+#ifdef _DEBUG
     Novice::DrawEllipse((int)pos_.x, (int)pos_.y, (int)radius_, (int)radius_, 0.0f, 0xFFFFFFFF, kFillModeSolid);
+
+	Novice::ScreenPrintf(0, 0, "Player hp X: %d ", hp_);
 #endif
 
     Novice::SetBlendMode(kBlendModeAdd);
@@ -129,6 +131,9 @@ void Player::PlayerDraw() {
     }
 
     Novice::SetBlendMode(kBlendModeNormal);
+
+
+
 }
 
 
@@ -180,4 +185,21 @@ void Player::MovePlayer(char keys[256]) {
 	for (int i = 0; i < 250; i++) {
 		bullet[i]->Updata();
 	}
+}
+
+
+void Player::OnDamage(int damage) {
+    if (invincibleTimer_ <= 0) { // 無敵中でなければ
+        hp_ -= damage;
+        invincibleTimer_ = 30; // 1秒間無敵にする
+        if (hp_ <= 0) {
+            hp_ = 0;
+            isAlive_ = false;
+        }
+    }
+
+    if (invincibleTimer_ >= 0) {
+		invincibleTimer_--;
+    }
+
 }
