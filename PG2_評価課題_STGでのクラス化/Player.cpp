@@ -42,9 +42,6 @@ Player::Player(Vector2 pos, Vector2 speed, float radius, int MaxHp, int hp, bool
 		//bullet[i] = nullptr;
 		bullet[i] = new Bullet();
 	}
-
-
-
 }
 
 
@@ -52,7 +49,6 @@ Player::Player(Vector2 pos, Vector2 speed, float radius, int MaxHp, int hp, bool
 void Player::PlayerUpdata(char keys[256]) {
 	MovePlayer(keys);
 }
-
 
 
 void Player::PlayerDraw() {
@@ -153,19 +149,32 @@ void Player::MovePlayer(char keys[256]) {
 	}
 
 	// 3. 発射処理
-	if (keys[DIK_SPACE]) {
-		if (shotCt_ <= 0) { // クールタイムが終わっていたら
-			for (int i = 0; i < 250; i++) {
-				if (!bullet[i]->bulletStatus.isShot) {
-					bullet[i]->bulletStatus.transform_.x = pos_.x;
-					bullet[i]->bulletStatus.transform_.y = pos_.y;
-					bullet[i]->bulletStatus.isShot = true;
-					shotCt_ = 3.0f; // 次の発射までの間隔（適宜調整）
-					break; // 1発撃ったらこのループを抜ける
-				}
-			}
-		}
-	}
+    if (keys[DIK_SPACE]) {
+        isCharging_ = true;
+        if (chargeTimer_ < kFullCharge) chargeTimer_ += 1.0f;
+    }
+    else {
+        if (isCharging_) { // ボタンを離した瞬間
+            // 1. 溜まり具合を 0.0 〜 1.0 の範囲で出す
+            float ratio = chargeTimer_ / kFullCharge;
+
+            // 2. 最小サイズ(1.5) 〜 最大サイズ(5.0) の間で、溜めた分だけ大きくする
+            // 式：最小 + (最大 - 最小) * 比率
+            float scale = 1.0f + (5.0f - 1.5f) * ratio;
+
+            // 弾を発射
+            for (int i = 0; i < 250; i++) {
+                if (!bullet[i]->bulletStatus.isShot) {
+                    bullet[i]->bulletStatus.transform_ = pos_;
+                    bullet[i]->bulletStatus.isShot = true;
+                    bullet[i]->bulletStatus.chargeScale = scale; // 溜めた分だけのサイズが渡る！
+                    break;
+                }
+            }
+            chargeTimer_ = 0.0f;
+            isCharging_ = false;
+        }
+    }
 
 	// 4. 弾の更新処理 (発射の成否に関わらず、すべての弾の状態を更新)
 	for (int i = 0; i < 250; i++) {

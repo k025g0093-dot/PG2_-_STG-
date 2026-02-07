@@ -25,5 +25,10 @@ private://変数限定
 	Vector2 speed_;
 	float radius_;
 	float  shotCt_ = 3.0f;
+
+	float chargeTimer_ = 0.0f;     // 溜まった時間
+	const float kFullCharge = 60.0f; // 60フレーム(1秒)で最大
+	bool isCharging_ = false;
+
 };
 

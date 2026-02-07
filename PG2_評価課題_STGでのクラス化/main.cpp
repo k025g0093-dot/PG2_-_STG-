@@ -28,7 +28,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		/// ↓更新処理ここから
 		///
 
-		game_->Updata(keys);
+		game_->Updata(keys, preKeys);
 
 
 		///
@@ -39,7 +39,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 		/// ↓描画処理ここから
 		///
 
-		game_->Draw();
+		game_->Draw(); 
 
 		///
 		/// ↑描画処理ここまで
