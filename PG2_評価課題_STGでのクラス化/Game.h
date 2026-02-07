@@ -17,7 +17,7 @@ public:
 
 	void Updata(char keys[256], char preKeys[256]);//更新処理
 	void Draw();
-
+	void Init();
 
 
 private:

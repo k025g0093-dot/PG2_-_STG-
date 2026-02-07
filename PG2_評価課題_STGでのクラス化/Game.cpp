@@ -5,7 +5,10 @@
 const int maxEnemy = 10;
 int gameSceen = TITLE;
 Game::Game() {
+	Init();
+}
 
+void Game::Init() {
 
 	// 1. まず全ての要素を nullptr で初期化
 	for (int i = 0; i < 100; i++) {
@@ -17,8 +20,7 @@ Game::Game() {
 		enemy[i] = new Enemy({ 100.0f + i * 100, 100.0f }, { 10.0f, 0.0f }, 32.0f, 10, 10, true);
 	}
 
-	player_ = new Player({ 640.0f, 500.0f }, { 10.0f, 10.0f }, 35.0f, 100, 100, true);
-
+	player_ = new Player({ 640.0f, 500.0f }, { 10.0f, 10.0f }, 35.0f, 10, 10, true);
 }
 
 void Game::Updata(char keys[256], char preKeys[256]) {
@@ -30,6 +32,7 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 
 	case TITLE:
 
+		Init();
 
 		if (preKeys[DIK_SPACE] && !keys[DIK_SPACE]) {
 			gameSceen = GAMEPLAY;
@@ -100,8 +103,47 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 		}
 
 
+		// --- プレイヤーと敵の本体当たり判定 ---
+		if (player_->GetIsAlive()) {
+			for (int i = 0; i < maxEnemy; i++) {
+				if (!enemy[i]->GetIsAlive()) continue;
+
+				// 距離の計算
+				Vector2 dist = {
+					player_->PlayerGetPos().x - enemy[i]->EnemyGetPos().x,
+					player_->PlayerGetPos().y - enemy[i]->EnemyGetPos().y
+				};
+				float distLengthSq = (dist.x * dist.x) + (dist.y * dist.y);
+
+				// 半径の合計
+				float radiusSum = player_->GetRadius() + enemy[i]->GetRadius();
+				float radiusSumSq = radiusSum * radiusSum;
+
+				if (distLengthSq <= radiusSumSq) {
+					// プレイヤーにダメージ（10など固定値でもOK）
+					player_->OnDamage(1);
+
+					// プレイヤーがダメージを受けた時も少し画面を揺らすと「痛い」感じが出ます
+					this->shakeIntensity_ = 10.0f;
+					this->shakeTimer_ = 15;
+				}
+			}
+		}
+
+
+		//次のシーンへの遷移処理
+		// player_が実在し、かつ死んでいる（Aliveがfalse）なら
+		if (player_ != nullptr && !player_->GetIsAlive()) {
+			gameSceen = GAMEOVER;
+		}
+
 		break;
 
+	case GAMEOVER:
+		// ゲームオーバー画面でスペースキーを押したらタイトルに戻る
+		if (preKeys[DIK_SPACE] && !keys[DIK_SPACE]) {
+			gameSceen = TITLE;
+		}
 
 	default:
 		break;
@@ -145,7 +187,7 @@ void Game::Draw() {
 
 #pragma region  ゲーム実行中の描画
 
-		
+
 
 		if (shakeTimer_ > 0) {
 			shakeTimer_--;
@@ -180,9 +222,13 @@ void Game::Draw() {
 		}
 #pragma endregion 
 
-
+		
 		break;
 
+
+	case GAMEOVER:
+
+		break;
 
 	default:
 		break;
