@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Vector2.h"
+#include "EnemyParticle.h"
 class Enemy
 {
 
@@ -12,7 +13,9 @@ public:
 	Enemy(Vector2 pos, Vector2 speed, float radius,int MaxHp,int hp,bool isAlive);
 	void EnemyUpdata();
 	void DrawEmemy();
+	void DrawParticle();
 	int invincibleTimer_;//無敵時間
+	EnemyParticle particle_;
 private:
 	void MoveEnemy();
 private:
