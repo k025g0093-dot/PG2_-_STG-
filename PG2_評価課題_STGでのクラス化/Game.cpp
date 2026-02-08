@@ -344,6 +344,7 @@ void Game::LoadRanking(){
 
 //開放エクササイズ
 //この瞬間永遠を手にする
+
 Game::~Game() {
 	// 動的確保したメモリの解放
 	for (int i = 0; i < 100; i++) {
