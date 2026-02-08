@@ -47,12 +47,21 @@ Player::Player(Vector2 pos, Vector2 speed, float radius, int MaxHp, int hp, bool
 
 
 void Player::PlayerUpdata(char keys[256]) {
+
+    if (invincibleTimer_ >= 0) {
+        invincibleTimer_--;
+    }
+
+    if (ultLaserTimer_ > 0) {
+        ultLaserTimer_--;
+    }
+
 	MovePlayer(keys);
 }
 
 
 void Player::PlayerDraw() {
-#ifdef _DEBUG
+#ifdef DEBUG
     Novice::DrawEllipse((int)pos_.x, (int)pos_.y, (int)radius_, (int)radius_, 0.0f, 0xFFFFFFFF, kFillModeSolid);
 
 	Novice::ScreenPrintf(0, 0, "Player hp X: %d ", hp_);
@@ -132,7 +141,7 @@ void Player::PlayerDraw() {
 
     Novice::SetBlendMode(kBlendModeNormal);
 
-
+    DrawUltimate();
 
 }
 
@@ -148,11 +157,24 @@ void Player::MovePlayer(char keys[256]) {
 	if (keys[DIK_W]) pos_.y -= speed_.y;
 	if (keys[DIK_S]) pos_.y += speed_.y;
 
+    if (pos_.x <= 0 + radius_ ) {
+        pos_.x =0+ radius_;
+    }
+    if (pos_.x >= 1280 - radius_) {
+        pos_.x = 1280 - radius_;
+	}
+   
+    if (pos_.y <= 0 + radius_) {
+        pos_.y =0+ radius_;
+    }
+    if (pos_.y >= 720 - radius_) {
+        pos_.y =720- radius_;
+	}
+
 	// 2. クールタイムのカウントダウン (ループの外で1フレームに1回だけ減らす)
 	if (shotCt_ > 0) {
 		shotCt_--;
 	}
-
 	// 3. 発射処理
     if (keys[DIK_SPACE]) {
         isCharging_ = true;
@@ -185,21 +207,54 @@ void Player::MovePlayer(char keys[256]) {
 	for (int i = 0; i < 250; i++) {
 		bullet[i]->Updata();
 	}
+
+    //必殺技の処理
+    if (UltPoint_ >= 100 && keys[DIK_Q]) {
+        Ultimate();
+    }
+
 }
 
 
 void Player::OnDamage(int damage) {
     if (invincibleTimer_ <= 0) { // 無敵中でなければ
         hp_ -= damage;
-        invincibleTimer_ = 30; // 1秒間無敵にする
+        invincibleTimer_ =20; // 1秒間無敵にする
         if (hp_ <= 0) {
             hp_ = 0;
             isAlive_ = false;
         }
     }
 
-    if (invincibleTimer_ >= 0) {
-		invincibleTimer_--;
-    }
+}
 
+void Player::Ultimate() {
+    // ウルトポイントが最大まで貯まっている場合のみ発動可能
+    if (UltPoint_ >= 100) {
+        ultLaserTimer_ = kUltLaserDuration;
+
+        UltPoint_ = 0; // リセット
+    }
+}
+
+void Player::DrawUltimate() {
+    if (ultLaserTimer_ <= 0) return;
+
+    Novice::SetBlendMode(kBlendModeAdd);
+
+    float px = pos_.x;
+    float py = pos_.y;
+    // レーザーの太さをタイマーに合わせて少し細くしていく演出
+    float baseWidth = 80.0f * ((float)ultLaserTimer_ / kUltLaserDuration);
+
+    // 1. 外光（青・太い）
+    Novice::DrawBox((int)px - (int)baseWidth, 0, (int)baseWidth * 2, (int)py, 0.0f, 0x0040FF80, kFillModeSolid);
+
+    // 2. 中間（水色）
+    Novice::DrawBox((int)px - (int)(baseWidth * 0.5f), 0, (int)baseWidth, (int)py, 0.0f, 0x0080FFFF, kFillModeSolid);
+
+    // 3. 芯（白・細い）
+    Novice::DrawBox((int)px - (int)(baseWidth * 0.2f), 0, (int)(baseWidth * 0.4f), (int)py, 0.0f, 0xFFFFFFFF, kFillModeSolid);
+
+    Novice::SetBlendMode(kBlendModeNormal);
 }

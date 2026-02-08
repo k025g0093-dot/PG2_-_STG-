@@ -8,6 +8,7 @@
 const int maxEnemy = 10;
 int gameSceen = TITLE;
 int score = 0;
+bool isRun = false;
 Game::Game() {
 	Init();
 }
@@ -24,7 +25,9 @@ void Game::Init() {
 		enemy[i] = new Enemy({ 100.0f + i * 100, 100.0f }, { 10.0f, 0.0f }, 32.0f, 10, 10, true);
 	}
 
-	player_ = new Player({ 640.0f, 500.0f }, { 10.0f, 10.0f }, 35.0f, 10, 10, true);
+	player_ = new Player({ 640.0f, 500.0f }, { 10.0f, 10.0f }, 35.0f, 5, 5, true);
+	player_->UltPoint_ = 100;
+	score = 0;
 }
 
 void Game::Updata(char keys[256], char preKeys[256]) {
@@ -36,8 +39,7 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 
 	case TITLE:
 
-		//初期化関数の呼び出し
-		Init();
+		player_->PlayerGetPos()={ 640.0f, 500.0f };
 
 		//背景画面のスクロール処理
 		scrollY_ += 2.0f;
@@ -45,18 +47,30 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 			scrollY_ = 0.0f;
 		}
 
-		//次のシーンへの線処理
 		if (preKeys[DIK_SPACE] && !keys[DIK_SPACE]) {
-			gameSceen = GAMEPLAY;
+			Init();
+			isRun = true;
+			player_->Ultimate(); // ここでタイマーがセットされる
 		}
 
+		if (isRun) {
+			// ★重要：レーザーのタイマーを減らすために Player の更新を呼ぶか、直接タイマーを操作する
+			player_->PlayerUpdata(keys); // これで内部の ultLaserTimer_ が減るはず
 
-
+			if (player_->GetUltLaserTimer() <= 0) { // < 0 より <= 0 が確実
+				gameSceen = GAMEPLAY;
+				isRun = false; // フラグを戻しておく
+			}
+		}
 		break;
 
 
 	case GAMEPLAY:
 
+		if (hitStopTimer_ > 0) {
+			hitStopTimer_--;
+			return; // ここでリターンすることで、プレイヤーも敵も動かなくなる
+		}
 
 		//プレイヤーの更新処理
 		player_->PlayerUpdata(keys);
@@ -71,11 +85,12 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 			scrollY_ = 0.0f;
 		}
 
+#pragma region 当たり判定処理
 
 		//敵と弾の当たり判定
 		for (int i = 0; i < maxEnemy; i++) {
 			// 敵が生きていないなら判定を飛ばす
-			if (enemy[i]->GetIsAlive()){
+			if (enemy[i]->GetIsAlive()) {
 
 				for (int b = 0; b < 250; b++) {
 					// 弾が発射されていないなら判定を飛ばす
@@ -108,21 +123,59 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 						this->shakeIntensity_ = (float)damage * 3.0f;
 						this->shakeTimer_ = 10;
 
-						player_->bullet[b]->bulletStatus.isShot = false;
+						if (!enemy[i]->GetIsAlive()) {
+							score += 100;
+							player_->UltPoint_ += 50; // 敵を倒したらウルトポイントを増やす
+							// --- ヒットストップ発動！ ---
+							// 弾のサイズ（chargeScale）が大きいほど長く止める
+							// 小さい弾なら3フレーム、特大なら10フレームなど
+							int stopTime = (int)(player_->bullet[b]->bulletStatus.chargeScale * 2);
+							if (stopTime > 10) stopTime = 10; // 止まりすぎると不快なので上限を設ける
+
+							this->hitStopTimer_ = stopTime;
+						}
+						//
+						if (player_->bullet[b]->bulletStatus.chargeScale <= 2) {
+							player_->bullet[b]->bulletStatus.isShot = false;
+						}
 					}
 				}
 			}
-			else {
-				//スコア加算処理
-				score += 100;
+
+		}
+
+
+		// Game::Updata 内
+		if (player_->GetUltLaserTimer() > 0) { // レーザー発動中なら
+			for (int i = 0; i < maxEnemy; i++) {
+				if (!enemy[i]->GetIsAlive()) continue;
+
+				// レーザーの幅（例：100px）の中に敵の座標が入っているかチェック
+				float laserLeft = player_->PlayerGetPos().x - 50.0f;
+				float laserRight = player_->PlayerGetPos().x + 50.0f;
+
+				if (enemy[i]->EnemyGetPos().x + enemy[i]->GetRadius() > laserLeft &&
+					enemy[i]->EnemyGetPos().x - enemy[i]->GetRadius() < laserRight) {
+
+					// 毎フレーム大ダメージ！
+					enemy[i]->HitGet(10);
+
+					// ヒットストップと強烈なシェイク
+					this->shakeIntensity_ = 20.0f;
+					this->shakeTimer_ = 2;
+				}
 			}
 		}
 
+#pragma endregion
 
 		// --- プレイヤーと敵の本体当たり判定 ---
 		if (player_->GetIsAlive()) {
 			for (int i = 0; i < maxEnemy; i++) {
 				if (!enemy[i]->GetIsAlive()) continue;
+
+				if (player_->GetInvincibleTimer() > 0) continue;
+
 
 				// 距離の計算
 				Vector2 dist = {
@@ -165,6 +218,7 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 
 		// ゲームオーバー画面でスペースキーを押したらタイトルに戻る
 		if (preKeys[DIK_SPACE] && !keys[DIK_SPACE]) {
+			Init();
 			gameSceen = TITLE;//タイトルシーンへ
 		}
 
@@ -203,7 +257,7 @@ void Game::Draw() {
 			int y = i + (int)scrollY_;
 			Novice::DrawLine(0, y, 1280, y, 0x004080FF); // 少し暗めの青
 		}
-
+			player_->PlayerDraw();
 		Novice::SetBlendMode(kBlendModeNormal);
 
 #pragma endregion
@@ -245,17 +299,21 @@ void Game::Draw() {
 
 		// 敵の描画
 		for (int i = 0; i < maxEnemy; i++) {
-			if (enemy[i] != nullptr) enemy[i]->DrawEmemy();
+			if (enemy[i] != nullptr)
+				enemy[i]->DrawEmemy();
+			enemy[i]->DrawParticle();
+
 		}
 #pragma endregion 
 
+		Novice::ScreenPrintf(0, 100, "scoer%d", player_->UltPoint_);
 
 		break;
 
 
 	case RESULT://
 
-#pragma region  ゲームオーバーの描画処理
+#pragma region  リザルト画面の描画処理
 
 		// 背景（トロン風の濃い紺色）
 		Novice::DrawBox(0, 0, 1280, 720, 0.0f, 0x000020FF, kFillModeSolid);
@@ -327,7 +385,7 @@ void Game::SaveScore() {
 	}
 }
 
-void Game::LoadRanking(){
+void Game::LoadRanking() {
 	// 1. ファイルからスコアを読み込む
 	std::ifstream ifs("score.txt");
 	if (ifs.is_open()) {

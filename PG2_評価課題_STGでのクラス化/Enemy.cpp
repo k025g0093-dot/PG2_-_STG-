@@ -48,6 +48,10 @@ Enemy::Enemy(Vector2 pos, Vector2 speed,
 
 //更新処理
 void Enemy::EnemyUpdata() {
+    particle_.UpdateBgParticle();
+    if (invincibleTimer_ > 0) {
+        invincibleTimer_--;
+    }
 
 	if (isAlive_) {
 		MoveEnemy();
@@ -70,9 +74,19 @@ void Enemy::DrawEmemy() {
     if (!isAlive_) return;
 
 #ifdef DEBUG
-	Novice::DrawEllipse((int)pos_.x, (int)pos_.y, (int)radius_, (int)radius_, 0.0f, 0xFFFFFFFF, kFillModeSolid);
+    Novice::DrawEllipse((int)pos_.x, (int)pos_.y, (int)radius_, (int)radius_, 0.0f, 0xFFFFFFFF, kFillModeSolid);
 
 #endif // DEBUG
+
+    if (hp_ <= 5) {
+        // 5フレームに1回描画をスキップすることで点滅を表現
+        // staticなカウント用変数を作るか、既存のtimerを利用します
+        static int flashTimer = 0;
+        flashTimer++;
+        if (flashTimer % 10 < 5) { // 10フレーム周期で5フレーム分消す
+            return;
+        }
+    }
 
     Novice::SetBlendMode(kBlendModeAdd);
     static float timer = 0.0f;
@@ -130,19 +144,29 @@ void Enemy::DrawEmemy() {
     Novice::SetBlendMode(kBlendModeNormal);
 }
 
+void Enemy::DrawParticle() {
+    particle_.DrawBgParticle();
+}
+
 //-----------------------------------------------
 //プライベート関数とかを作成
 //-----------------------------------------------
 
 void Enemy::HitGet(int dmg) {
-    if (isAlive_) {
-        hp_ -= dmg;          // HPを減らす
-        if (hp_ <= 0) {
-            hp_ = 0;
-            isAlive_ = false; // 死ぬ
-            pos_ = { -10000.0f,-10000.0f };
+    if (invincibleTimer_ <= 0) {
+        if (isAlive_) {
+            hp_ -= dmg;          // HPを減らす
+            invincibleTimer_ = 20;//無敵時間のリセット
+            if (hp_ <= 0) {
+                particle_.InitBgParticle(pos_);
+                hp_ = 0;
+                isAlive_ = false; // 死ぬ
+                pos_ = { -10000.0f,-10000.0f };
+            }
         }
-    }
+    }else if(invincibleTimer_>=0){
+		invincibleTimer_--;
+	}
 }
 
 void Enemy::MoveEnemy() {

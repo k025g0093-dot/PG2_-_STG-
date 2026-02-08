@@ -22,11 +22,13 @@ public:
 	void SaveScore();
 	void LoadRanking();
 private:
+	int hitStopTimer_ = 0; // ヒットストップの残り時間
 	//ここから下にシーン旋回のアニメーションだったりの実装を行う・
 	Enemy* enemy[100];
 	Player* player_;
 	float scrollY_ = 0.0f; // 背景を流すためのオフセット
 	float shakeIntensity_ = 0.0f; // 現在の揺れの強さ
 	int shakeTimer_ = 0;          // 揺れている残り時間
+
 };
 
