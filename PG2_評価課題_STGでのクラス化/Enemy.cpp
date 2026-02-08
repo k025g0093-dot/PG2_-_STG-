@@ -135,14 +135,19 @@ void Enemy::DrawEmemy() {
 //-----------------------------------------------
 
 void Enemy::HitGet(int dmg) {
-    if (isAlive_) {
-        hp_ -= dmg;          // HPを減らす
-        if (hp_ <= 0) {
-            hp_ = 0;
-            isAlive_ = false; // 死ぬ
-            pos_ = { -10000.0f,-10000.0f };
+    if (invincibleTimer_ <= 0) {
+        if (isAlive_) {
+            hp_ -= dmg;          // HPを減らす
+            invincibleTimer_ = 20;//無敵時間のリセット
+            if (hp_ <= 0) {
+                hp_ = 0;
+                isAlive_ = false; // 死ぬ
+                pos_ = { -10000.0f,-10000.0f };
+            }
         }
-    }
+    }else if(invincibleTimer_>=0){
+		invincibleTimer_--;
+	}
 }
 
 void Enemy::MoveEnemy() {

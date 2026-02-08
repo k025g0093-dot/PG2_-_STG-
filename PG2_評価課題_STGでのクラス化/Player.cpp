@@ -47,12 +47,18 @@ Player::Player(Vector2 pos, Vector2 speed, float radius, int MaxHp, int hp, bool
 
 
 void Player::PlayerUpdata(char keys[256]) {
+
+    if (invincibleTimer_ >= 0) {
+        invincibleTimer_--;
+    }
+
+
 	MovePlayer(keys);
 }
 
 
 void Player::PlayerDraw() {
-#ifdef _DEBUG
+#ifdef DEBUG
     Novice::DrawEllipse((int)pos_.x, (int)pos_.y, (int)radius_, (int)radius_, 0.0f, 0xFFFFFFFF, kFillModeSolid);
 
 	Novice::ScreenPrintf(0, 0, "Player hp X: %d ", hp_);
@@ -191,15 +197,11 @@ void Player::MovePlayer(char keys[256]) {
 void Player::OnDamage(int damage) {
     if (invincibleTimer_ <= 0) { // 無敵中でなければ
         hp_ -= damage;
-        invincibleTimer_ = 30; // 1秒間無敵にする
+        invincibleTimer_ =20; // 1秒間無敵にする
         if (hp_ <= 0) {
             hp_ = 0;
             isAlive_ = false;
         }
-    }
-
-    if (invincibleTimer_ >= 0) {
-		invincibleTimer_--;
     }
 
 }

@@ -24,7 +24,7 @@ void Game::Init() {
 		enemy[i] = new Enemy({ 100.0f + i * 100, 100.0f }, { 10.0f, 0.0f }, 32.0f, 10, 10, true);
 	}
 
-	player_ = new Player({ 640.0f, 500.0f }, { 10.0f, 10.0f }, 35.0f, 10, 10, true);
+	player_ = new Player({ 640.0f, 500.0f }, { 10.0f, 10.0f }, 35.0f, 5, 5, true);
 }
 
 void Game::Updata(char keys[256], char preKeys[256]) {
@@ -108,14 +108,17 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 						this->shakeIntensity_ = (float)damage * 3.0f;
 						this->shakeTimer_ = 10;
 
-						player_->bullet[b]->bulletStatus.isShot = false;
+						if (!enemy[i]->GetIsAlive()) {
+							score += 100;
+						}
+						//
+						if (player_->bullet[b]->bulletStatus.chargeScale <= 2) {
+							player_->bullet[b]->bulletStatus.isShot = false;
+						}
 					}
 				}
 			}
-			else {
-				//スコア加算処理
-				score += 100;
-			}
+			
 		}
 
 
@@ -123,6 +126,9 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 		if (player_->GetIsAlive()) {
 			for (int i = 0; i < maxEnemy; i++) {
 				if (!enemy[i]->GetIsAlive()) continue;
+
+				if (player_->GetInvincibleTimer() > 0) continue;
+
 
 				// 距離の計算
 				Vector2 dist = {
@@ -249,13 +255,14 @@ void Game::Draw() {
 		}
 #pragma endregion 
 
+		Novice::ScreenPrintf(0, 100, "scoer%d", score);
 
 		break;
 
 
 	case RESULT://
 
-#pragma region  ゲームオーバーの描画処理
+#pragma region  リザルト画面の描画処理
 
 		// 背景（トロン風の濃い紺色）
 		Novice::DrawBox(0, 0, 1280, 720, 0.0f, 0x000020FF, kFillModeSolid);
