@@ -165,7 +165,7 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 
 		// ゲームオーバー画面でスペースキーを押したらタイトルに戻る
 		if (preKeys[DIK_SPACE] && !keys[DIK_SPACE]) {
-			gameSceen = TITLE;
+			gameSceen = TITLE;//タイトルシーンへ
 		}
 
 
