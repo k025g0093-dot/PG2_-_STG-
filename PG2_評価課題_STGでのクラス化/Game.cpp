@@ -25,6 +25,7 @@ void Game::Init() {
 	}
 
 	player_ = new Player({ 640.0f, 500.0f }, { 10.0f, 10.0f }, 35.0f, 5, 5, true);
+	score = 0;
 }
 
 void Game::Updata(char keys[256], char preKeys[256]) {
