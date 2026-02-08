@@ -158,7 +158,7 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 					enemy[i]->EnemyGetPos().x - enemy[i]->GetRadius() < laserRight) {
 
 					// 毎フレーム大ダメージ！
-					enemy[i]->HitGet(5);
+					enemy[i]->HitGet(10);
 
 					// ヒットストップと強烈なシェイク
 					this->shakeIntensity_ = 20.0f;
@@ -218,6 +218,7 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 
 		// ゲームオーバー画面でスペースキーを押したらタイトルに戻る
 		if (preKeys[DIK_SPACE] && !keys[DIK_SPACE]) {
+			Init();
 			gameSceen = TITLE;//タイトルシーンへ
 		}
 
@@ -256,9 +257,7 @@ void Game::Draw() {
 			int y = i + (int)scrollY_;
 			Novice::DrawLine(0, y, 1280, y, 0x004080FF); // 少し暗めの青
 		}
-		if (isRun) {
 			player_->PlayerDraw();
-		}
 		Novice::SetBlendMode(kBlendModeNormal);
 
 #pragma endregion
