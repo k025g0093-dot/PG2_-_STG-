@@ -18,7 +18,7 @@ public:
 
 	void OnDamage(int damage); // ダメージを受けた時の関数
 	bool GetIsAlive() const { return isAlive_; };
-
+	int GetInvincibleTimer() const { return invincibleTimer_; };
 private://関数限定の
 	void MovePlayer(char keys[256]);
 
