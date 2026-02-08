@@ -48,7 +48,7 @@ Enemy::Enemy(Vector2 pos, Vector2 speed,
 
 //更新処理
 void Enemy::EnemyUpdata() {
-
+    particle_.UpdateBgParticle();
     if (invincibleTimer_ > 0) {
         invincibleTimer_--;
     }
@@ -144,6 +144,10 @@ void Enemy::DrawEmemy() {
     Novice::SetBlendMode(kBlendModeNormal);
 }
 
+void Enemy::DrawParticle() {
+    particle_.DrawBgParticle();
+}
+
 //-----------------------------------------------
 //プライベート関数とかを作成
 //-----------------------------------------------
@@ -154,6 +158,7 @@ void Enemy::HitGet(int dmg) {
             hp_ -= dmg;          // HPを減らす
             invincibleTimer_ = 20;//無敵時間のリセット
             if (hp_ <= 0) {
+                particle_.InitBgParticle(pos_);
                 hp_ = 0;
                 isAlive_ = false; // 死ぬ
                 pos_ = { -10000.0f,-10000.0f };
