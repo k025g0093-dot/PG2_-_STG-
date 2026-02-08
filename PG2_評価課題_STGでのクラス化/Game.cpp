@@ -340,3 +340,19 @@ void Game::LoadRanking(){
 		ifs.close();
 	}
 }
+
+
+//開放エクササイズ
+Game::~Game() {
+	// 動的確保したメモリの解放
+	for (int i = 0; i < 100; i++) {
+		if (enemy[i] != nullptr) {
+			delete enemy[i];
+			enemy[i] = nullptr;
+		}
+	}
+	if (player_ != nullptr) {
+		delete player_;
+		player_ = nullptr;
+	}
+}
