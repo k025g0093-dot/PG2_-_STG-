@@ -9,6 +9,9 @@ const int maxEnemy = 10;
 int gameSceen = TITLE;
 int score = 0;
 bool isRun = false;
+
+int titleImage = 0;
+
 Game::Game() {
 	Init();
 }
@@ -28,6 +31,10 @@ void Game::Init() {
 	player_ = new Player({ 640.0f, 500.0f }, { 10.0f, 10.0f }, 35.0f, 5, 5, true);
 	player_->UltPoint_ = 100;
 	score = 0;
+
+	//画僧などの読み込み
+	titleImage = Novice::LoadTexture("./Resources/Image/TITLE.png");
+
 }
 
 void Game::Updata(char keys[256], char preKeys[256]) {
@@ -39,7 +46,7 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 
 	case TITLE:
 
-		player_->PlayerGetPos()={ 640.0f, 500.0f };
+		player_->PlayerGetPos() = { 640.0f, 500.0f };
 
 		//背景画面のスクロール処理
 		scrollY_ += 2.0f;
@@ -257,7 +264,9 @@ void Game::Draw() {
 			int y = i + (int)scrollY_;
 			Novice::DrawLine(0, y, 1280, y, 0x004080FF); // 少し暗めの青
 		}
-			player_->PlayerDraw();
+		player_->PlayerDraw();
+
+		Novice::DrawSprite(400, 0, titleImage, 1.0f, 1.0f,0.0f,0xFFFFFFFF);
 		Novice::SetBlendMode(kBlendModeNormal);
 
 #pragma endregion
