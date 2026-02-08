@@ -154,6 +154,20 @@ void Player::MovePlayer(char keys[256]) {
 	if (keys[DIK_W]) pos_.y -= speed_.y;
 	if (keys[DIK_S]) pos_.y += speed_.y;
 
+    if (pos_.x <= 0 + radius_ ) {
+        pos_.x =0+ radius_;
+    }
+    if (pos_.x >= 1280 - radius_) {
+        pos_.x = 1280 - radius_;
+	}
+   
+    if (pos_.y <= 0 + radius_) {
+        pos_.y =0+ radius_;
+    }
+    if (pos_.y >= 720 - radius_) {
+        pos_.y =720- radius_;
+	}
+
 	// 2. クールタイムのカウントダウン (ループの外で1フレームに1回だけ減らす)
 	if (shotCt_ > 0) {
 		shotCt_--;
