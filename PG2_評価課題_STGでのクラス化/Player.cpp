@@ -74,8 +74,9 @@ void Player::PlayerDraw() {
 
     Novice::SetBlendMode(kBlendModeAdd);
 
-    DrawChargeParticles();
-
+    if (isCharging_) {
+        DrawChargeParticles();
+    }
     static float playerTimer = 0.0f;
     playerTimer += 0.05f; // 回転・アニメーション速度
 
@@ -308,7 +309,7 @@ void Player::DrawChargeParticles() {
             // 生存時間に合わせてサイズを小さくする
             int size = particles_[i].life / 4;
             Novice::DrawBox((int)particles_[i].pos.x, (int)particles_[i].pos.y,
-                size, size, 0.0f, 0x00FFFFFF, kFillModeSolid);
+                size, size, 0.0f, 0xAF0000FF, kFillModeSolid);
         }
     }
     Novice::SetBlendMode(kBlendModeNormal);
