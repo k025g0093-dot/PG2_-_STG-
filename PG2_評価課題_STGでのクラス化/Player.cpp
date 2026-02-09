@@ -42,6 +42,11 @@ Player::Player(Vector2 pos, Vector2 speed, float radius, int MaxHp, int hp, bool
 		//bullet[i] = nullptr;
 		bullet[i] = new Bullet();
 	}
+
+    for (int i = 0; i < kMaxParticles; i++) {
+        particles_[i].isActive = false;
+    }
+
 }
 
 
@@ -68,6 +73,8 @@ void Player::PlayerDraw() {
 #endif
 
     Novice::SetBlendMode(kBlendModeAdd);
+
+    DrawChargeParticles();
 
     static float playerTimer = 0.0f;
     playerTimer += 0.05f; // 回転・アニメーション速度
@@ -179,6 +186,7 @@ void Player::MovePlayer(char keys[256]) {
     if (keys[DIK_SPACE]) {
         isCharging_ = true;
         if (chargeTimer_ < kFullCharge) chargeTimer_ += 1.0f;
+        UpdateChargeParticles();
     }
     else {
         if (isCharging_) { // ボタンを離した瞬間
@@ -258,3 +266,51 @@ void Player::DrawUltimate() {
 
     Novice::SetBlendMode(kBlendModeNormal);
 }
+
+void Player::UpdateChargeParticles() {
+    // 1. チャージ中なら新しいパーティクルを生成
+    if (isCharging_) {
+        for (int i = 0; i < kMaxParticles; i++) {
+            if (!particles_[i].isActive) {
+                particles_[i].isActive = true;
+                particles_[i].life = 20; // 20フレーム生存
+
+                // プレイヤーの周囲360度のどこかから発生
+                float angle = (float)(rand() % 360) * (float)M_PI / 180.0f;
+                float dist = 40.0f + (rand() % 20); // 発生半径
+
+                particles_[i].pos.x = pos_.x + cosf(angle) * dist;
+                particles_[i].pos.y = pos_.y + sinf(angle) * dist;
+
+                // 中心（プレイヤー）に向かう速度を計算
+                particles_[i].velocity.x = (pos_.x - particles_[i].pos.x) * 0.1f;
+                particles_[i].velocity.y = (pos_.y - particles_[i].pos.y) * 0.1f;
+                break;
+            }
+        }
+    }
+
+    // 2. 既存のパーティクルを動かす
+    for (int i = 0; i < kMaxParticles; i++) {
+        if (particles_[i].isActive) {
+            particles_[i].pos.x += particles_[i].velocity.x;
+            particles_[i].pos.y += particles_[i].velocity.y;
+            particles_[i].life--;
+            if (particles_[i].life <= 0) particles_[i].isActive = false;
+        }
+    }
+}
+
+void Player::DrawChargeParticles() {
+    Novice::SetBlendMode(kBlendModeAdd);
+    for (int i = 0; i < kMaxParticles; i++) {
+        if (particles_[i].isActive) {
+            // 生存時間に合わせてサイズを小さくする
+            int size = particles_[i].life / 4;
+            Novice::DrawBox((int)particles_[i].pos.x, (int)particles_[i].pos.y,
+                size, size, 0.0f, 0x00FFFFFF, kFillModeSolid);
+        }
+    }
+    Novice::SetBlendMode(kBlendModeNormal);
+}
+

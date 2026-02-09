@@ -208,7 +208,6 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 
 
 		//次のシーンへの遷移処理
-		// player_が実在し、かつ死んでいる（Aliveがfalse）なら
 		if (player_ != nullptr && !player_->GetIsAlive()) {
 			SaveScore();//スコアの保存
 			gameSceen = RESULT;

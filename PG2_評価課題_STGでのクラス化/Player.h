@@ -12,6 +12,13 @@ public:
 
 	Player(Vector2 pos, Vector2 speed, float radius, int MaxHp, int hp, bool isAlive);
 
+	struct ChargeParticle {
+		Vector2 pos;
+		Vector2 velocity;
+		int life;      // 残り生存時間
+		bool isActive; // 使用中かどうか
+	};
+
 	void PlayerUpdata(char keys[256]);
 	void PlayerDraw();
 	Bullet* bullet[250];
@@ -28,6 +35,12 @@ private://関数限定の
 
 private://変数限定
 	void DrawUltimate();
+
+	void UpdateChargeParticles();
+	void DrawChargeParticles();
+
+	static const int kMaxParticles = 30; // 最大数
+	ChargeParticle particles_[kMaxParticles];
 
 private://変数限定
 
