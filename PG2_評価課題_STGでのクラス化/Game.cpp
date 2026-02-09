@@ -265,7 +265,7 @@ void Game::Draw() {
 		}
 		player_->PlayerDraw();
 
-		Novice::DrawSprite(400, 0, titleImage, 1.0f, 1.0f,0.0f,0xFFFFFFFF);
+		Novice::DrawSprite(400, 0, titleImage, 1.0f, 1.0f, 0.0f, 0xFFFFFFFF);
 		Novice::SetBlendMode(kBlendModeNormal);
 
 #pragma endregion
@@ -304,6 +304,41 @@ void Game::Draw() {
 		Novice::SetBlendMode(kBlendModeNormal);
 
 		player_->PlayerDraw();
+
+
+		// --- 必殺技ゲージの描画 ---
+		{
+			int gaugeX = 50;  // ゲージの開始位置 X
+			int gaugeY = 670; // ゲージの開始位置 Y
+			int gaugeW = 300; // ゲージの最大幅
+			int gaugeH = 20;  // ゲージの高さ
+
+			// 1. ゲージの外枠（少し大きめの黒い箱）
+			Novice::DrawBox(gaugeX - 2, gaugeY - 2, gaugeW + 4, gaugeH + 4, 0.0f, BLACK, kFillModeSolid);
+
+			// 2. ゲージの背景（暗いグレー）
+			Novice::DrawBox(gaugeX, gaugeY, gaugeW, gaugeH, 0.0f, 0x333333FF, kFillModeSolid);
+
+			// 3. 現在のポイントに応じた中身の計算
+			float ratio = player_->UltPoint_ / 100.0f;
+			if (ratio > 1.0f) ratio = 1.0f; // 100%を超えないように制御
+			int currentW = (int)(gaugeW * ratio);
+
+			// 4. 中身の色（100%溜まったら色を明るくする演出）
+			unsigned int gaugeColor = 0x00AAAAFF; // 通常は水色
+			if (player_->UltPoint_ >= 100) {
+				gaugeColor = 0x00FFFFFF; // MAXなら白く光る
+			}
+
+			// 5. 中身の描画
+			Novice::DrawBox(gaugeX, gaugeY, currentW, gaugeH, 0.0f, gaugeColor, kFillModeSolid);
+
+			// 6. テキスト表示（少し上に）
+			Novice::ScreenPrintf(gaugeX, gaugeY - 25, "ULTIMATE ENERGY");
+			if (player_->UltPoint_ >= 100) {
+				Novice::ScreenPrintf(gaugeX + 130, gaugeY - 25, " - READY!! - ");
+			}
+		}
 
 		// 敵の描画
 		for (int i = 0; i < maxEnemy; i++) {
