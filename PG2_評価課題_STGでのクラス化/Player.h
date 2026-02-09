@@ -27,6 +27,7 @@ public:
 	bool GetIsAlive() const { return isAlive_; };
 	int GetInvincibleTimer() const { return invincibleTimer_; };
 	int GetUltLaserTimer() const { return ultLaserTimer_; };
+	int GetHp() const { return hp_; };
 	void Ultimate();
 	int UltPoint_ = 0;//ウルトポイント
 
