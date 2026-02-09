@@ -11,7 +11,8 @@ int score = 0;
 bool isRun = false;
 
 int titleImage = 0;
-
+int scoerImage = 0;
+int goTitleImage = 0;
 Game::Game() {
 	Init();
 }
@@ -34,7 +35,8 @@ void Game::Init() {
 
 	//画僧などの読み込み
 	titleImage = Novice::LoadTexture("./Resources/Image/TITLE.png");
-
+	scoerImage= Novice::LoadTexture("./Resources/Image/scoer.png");
+	goTitleImage = Novice::LoadTexture("./Resources/Image/goTitle.png");
 }
 
 void Game::Updata(char keys[256], char preKeys[256]) {
@@ -53,11 +55,12 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 		if (scrollY_ >= 64.0f) { // グリッドの幅を超えたらリセット
 			scrollY_ = 0.0f;
 		}
-
-		if (preKeys[DIK_SPACE] && !keys[DIK_SPACE]) {
-			Init();
-			isRun = true;
-			player_->Ultimate(); // ここでタイマーがセットされる
+		if (!isRun) {
+			if (preKeys[DIK_SPACE] && !keys[DIK_SPACE]) {
+				Init();
+				isRun = true;
+				player_->Ultimate(); // ここでタイマーがセットされる
+			}
 		}
 
 		if (isRun) {
@@ -160,9 +163,11 @@ void Game::Updata(char keys[256], char preKeys[256]) {
 				// レーザーの幅（例：100px）の中に敵の座標が入っているかチェック
 				float laserLeft = player_->PlayerGetPos().x - 50.0f;
 				float laserRight = player_->PlayerGetPos().x + 50.0f;
+				float laserYTop = player_->PlayerGetPos().y;
 
 				if (enemy[i]->EnemyGetPos().x + enemy[i]->GetRadius() > laserLeft &&
-					enemy[i]->EnemyGetPos().x - enemy[i]->GetRadius() < laserRight) {
+					enemy[i]->EnemyGetPos().x - enemy[i]->GetRadius() < laserRight&&
+					enemy[i]->EnemyGetPos().y<laserYTop) {
 
 					// 毎フレーム大ダメージ！
 					enemy[i]->HitGet(10);
@@ -265,7 +270,7 @@ void Game::Draw() {
 		}
 		player_->PlayerDraw();
 
-		Novice::DrawSprite(400, 0, titleImage, 1.0f, 1.0f, 0.0f, 0xFFFFFFFF);
+		Novice::DrawSprite(400, 0, titleImage, 1.0f, 1.0f,0.0f,0xFFFFFFFF);
 		Novice::SetBlendMode(kBlendModeNormal);
 
 #pragma endregion
@@ -306,6 +311,39 @@ void Game::Draw() {
 		player_->PlayerDraw();
 
 
+		// --- プレイヤーHPゲージの描画 ---
+		{
+			int hpBarX = 50;  // ゲージの開始位置 X
+			int hpBarY = 50;  // ゲージの開始位置 Y
+			int hpBarW = 250; // ゲージの最大幅
+			int hpBarH = 15;  // ゲージの高さ
+
+			// 1. 外枠（少し厚めに）
+			Novice::DrawBox(hpBarX - 3, hpBarY - 3, hpBarW + 6, hpBarH + 6, 0.0f, BLACK, kFillModeSolid);
+
+			// 2. 背景（暗い赤）
+			Novice::DrawBox(hpBarX, hpBarY, hpBarW, hpBarH, 0.0f, 0x440000FF, kFillModeSolid);
+
+			// 3. 現在のHP比率の計算（PlayerクラスにHPと最大HPがある想定）
+			// もし最大HPが固定値なら直接数字（例：5.0f）を入れてください
+			float hpRatio = (float)player_->GetHp() / 5.0f;
+			if (hpRatio < 0) hpRatio = 0;
+			int currentHpW = (int)(hpBarW * hpRatio);
+
+			// 4. HPの中身（鮮やかな赤）
+			unsigned int hpColor = 0xFF0000FF;
+			// ピンチの時に色を変える演出（HPが20%以下なら点滅させるなど）
+			if (hpRatio <= 0.2f) {
+				hpColor = 0xFF8800FF; // オレンジ色
+			}
+
+			// 5. 描画
+			Novice::DrawBox(hpBarX, hpBarY, currentHpW, hpBarH, 0.0f, hpColor, kFillModeSolid);
+
+			// 6. テキスト
+			Novice::ScreenPrintf(hpBarX, hpBarY - 25, "PLAYER VITAL");
+		}
+
 		// --- 必殺技ゲージの描画 ---
 		{
 			int gaugeX = 50;  // ゲージの開始位置 X
@@ -329,15 +367,15 @@ void Game::Draw() {
 			if (player_->UltPoint_ >= 100) {
 				gaugeColor = 0x00FFFFFF; // MAXなら白く光る
 			}
+		
+		// 5. 中身の描画
+		Novice::DrawBox(gaugeX, gaugeY, currentW, gaugeH, 0.0f, gaugeColor, kFillModeSolid);
 
-			// 5. 中身の描画
-			Novice::DrawBox(gaugeX, gaugeY, currentW, gaugeH, 0.0f, gaugeColor, kFillModeSolid);
-
-			// 6. テキスト表示（少し上に）
-			Novice::ScreenPrintf(gaugeX, gaugeY - 25, "ULTIMATE ENERGY");
-			if (player_->UltPoint_ >= 100) {
-				Novice::ScreenPrintf(gaugeX + 130, gaugeY - 25, " - READY!! - ");
-			}
+		// 6. テキスト表示（少し上に）
+		Novice::ScreenPrintf(gaugeX, gaugeY - 25, "ULTIMATE ENERGY");
+		if (player_->UltPoint_ >= 100) {
+			Novice::ScreenPrintf(gaugeX + 130, gaugeY - 25, " - READY!! - ");
+		}
 		}
 
 		// 敵の描画
@@ -349,7 +387,9 @@ void Game::Draw() {
 		}
 #pragma endregion 
 
-		Novice::ScreenPrintf(0, 100, "scoer%d", player_->UltPoint_);
+		//Novice::DrawSprite(900, 40, scoerImage, 0.5f,0.5f, 0.0f, 0xFFFFFFFF);
+
+		//Novice::ScreenPrintf(1000, 100, "SCOER%d", score);
 
 		break;
 
@@ -375,7 +415,7 @@ void Game::Draw() {
 
 		Novice::SetBlendMode(kBlendModeNormal);
 
-
+		Novice::DrawSprite(0, 0, goTitleImage, 1.0f, 1.0f, 0.0f, 0xFFFFFFFF);
 
 #pragma endregion
 
